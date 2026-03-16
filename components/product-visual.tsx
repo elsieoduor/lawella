@@ -5,8 +5,8 @@ import { cn } from "@/lib/utils"
 
 interface ProductVisualProps {
   product: {
-    image_url?: string;
-    emoji?: string;
+    image_url?: string | null;
+    emoji?: string | null;
     name: string;
   };
   size?: number;
