@@ -14,7 +14,7 @@ const CONTACT_INFO = [
   {
     icon: <MessageCircle size={22} />,
     title: "WhatsApp",
-    value: "+254 700 000 000",
+    value: "+254 710 776 500",
     sub: "Our fastest response channel",
     link: `https://wa.me/${WHATSAPP_NUMBER}`,
   },
