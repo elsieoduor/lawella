@@ -52,7 +52,7 @@ export default function AboutPage() {
                 key={p.id}
                 className={`rounded-2xl overflow-hidden shadow-brand-sm ${i % 2 ? "translate-y-4" : ""}`}
               >
-                <ProductVisual product={p.image_url} size={200} />
+                <ProductVisual product={p} size={200} />
               </div>
             ))}
           </div>
