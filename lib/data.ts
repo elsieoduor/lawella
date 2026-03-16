@@ -1,6 +1,6 @@
 import { Product, Category, Order } from "./types"
 
-export const WHATSAPP_NUMBER = "254700000000"
+export const WHATSAPP_NUMBER = "254710776500"
 
 export const CATEGORIES: Category[] = [
   { key: "all", label: "All Products", emoji: "✨" },
@@ -160,89 +160,89 @@ export const TOP_PRODUCTS = [
   { name: "Scarlet Scrunchie Set", sales: 198, revenue: 128700 },
 ]
 
-export const RECENT_ORDERS: Order[] = [
-  {
-    id: "LW-0089",
-    customer_name: "Amina Wanjiru",
-    customer_email: "amina@email.com",
-    customer_phone: "+254 712 345 678",
-    order_items: [],
-    total: 3200,
-    status: "delivered",
-    payment_method: "mpesa",
-    order_date: "2025-03-09",
-    delivery_address: "Westlands, Nairobi",
-    delivery_city: "Nairobi",
-    payment_status:"paid"
-  },
-  {
-    id: "LW-0088",
-    customer_name: "Zara Kimani",
-    customer_email: "zara@email.com",
-    customer_phone: "+254 722 987 654",
-    order_items: [],
-    total: 6300,
-    status: "shipped",
-    payment_method: "bank",
-    order_date: "2025-03-08",
-    delivery_address: "Karen, Nairobi",
-    delivery_city: "Nairobi",
-    payment_status:"refunded"
-  },
-  {
-    id: "LW-0087",
-    customer_name: "Lydia Ochieng",
-    customer_email: "lydia@email.com",
-    customer_phone: "+254 733 111 222",
-    order_items: [],
-    total: 1800,
-    status: "processing",
-    payment_method: "mpesa",
-    order_date: "2025-03-08",
-    delivery_address: "Kilimani, Nairobi",
-    delivery_city: "Nairobi",
-    payment_status:"unpaid"
-  },
-  {
-    id: "LW-0086",
-    customer_name: "Faith Muthoni",
-    customer_email: "faith@email.com",
-    customer_phone: "+254 700 444 555",
-    order_items: [],
-    total: 4500,
-    status: "pending",
-    payment_method: "cash",
-    order_date: "2025-03-07",
-    delivery_address: "Lavington, Nairobi",
-    delivery_city: "Nairobi",
-    payment_status:"paid"
-  },
-  {
-    id: "LW-0085",
-    customer_name: "Grace Akinyi",
-    customer_email: "grace@email.com",
-    customer_phone: "+254 711 777 888",
-    order_items: [],
-    total: 760,
-    status: "delivered",
-    payment_method: "mpesa",
-    order_date: "2025-03-06",
-    delivery_address: "Eastlands",
-    delivery_city: "Nairobi",
-    payment_status:"failed"
-  },
-  {
-    id: "LW-0084",
-    customer_name: "Naomi Chebet",
-    customer_email: "naomi@email.com",
-    customer_phone: "+254 799 333 111",
-    order_items: [],
-    total: 9800,
-    status: "delivered",
-    payment_method: "bank",
-    order_date: "2025-03-05",
-    delivery_address: "Runda, Nairobi",
-    delivery_city: "Nairobi",
-    payment_status:"unpaid"
-  },
-]
+// export const RECENT_ORDERS: Order[] = [
+//   {
+//     id: "LW-0089",
+//     customer_name: "Amina Wanjiru",
+//     customer_email: "amina@email.com",
+//     customer_phone: "+254 712 345 678",
+//     order_items: [],
+//     total: 3200,
+//     status: "delivered",
+//     payment_method: "mpesa",
+//     order_date: "2025-03-09",
+//     delivery_address: "Westlands, Nairobi",
+//     delivery_city: "Nairobi",
+//     payment_status:"paid"
+//   },
+//   {
+//     id: "LW-0088",
+//     customer_name: "Zara Kimani",
+//     customer_email: "zara@email.com",
+//     customer_phone: "+254 722 987 654",
+//     order_items: [],
+//     total: 6300,
+//     status: "shipped",
+//     payment_method: "bank",
+//     order_date: "2025-03-08",
+//     delivery_address: "Karen, Nairobi",
+//     delivery_city: "Nairobi",
+//     payment_status:"refunded"
+//   },
+//   {
+//     id: "LW-0087",
+//     customer_name: "Lydia Ochieng",
+//     customer_email: "lydia@email.com",
+//     customer_phone: "+254 733 111 222",
+//     order_items: [],
+//     total: 1800,
+//     status: "processing",
+//     payment_method: "mpesa",
+//     order_date: "2025-03-08",
+//     delivery_address: "Kilimani, Nairobi",
+//     delivery_city: "Nairobi",
+//     payment_status:"unpaid"
+//   },
+//   {
+//     id: "LW-0086",
+//     customer_name: "Faith Muthoni",
+//     customer_email: "faith@email.com",
+//     customer_phone: "+254 700 444 555",
+//     order_items: [],
+//     total: 4500,
+//     status: "pending",
+//     payment_method: "cash",
+//     order_date: "2025-03-07",
+//     delivery_address: "Lavington, Nairobi",
+//     delivery_city: "Nairobi",
+//     payment_status:"paid"
+//   },
+//   {
+//     id: "LW-0085",
+//     customer_name: "Grace Akinyi",
+//     customer_email: "grace@email.com",
+//     customer_phone: "+254 711 777 888",
+//     order_items: [],
+//     total: 760,
+//     status: "delivered",
+//     payment_method: "mpesa",
+//     order_date: "2025-03-06",
+//     delivery_address: "Eastlands",
+//     delivery_city: "Nairobi",
+//     payment_status:"failed"
+//   },
+//   {
+//     id: "LW-0084",
+//     customer_name: "Naomi Chebet",
+//     customer_email: "naomi@email.com",
+//     customer_phone: "+254 799 333 111",
+//     order_items: [],
+//     total: 9800,
+//     status: "delivered",
+//     payment_method: "bank",
+//     order_date: "2025-03-05",
+//     delivery_address: "Runda, Nairobi",
+//     delivery_city: "Nairobi",
+//     payment_status:"unpaid"
+//   },
+// ]

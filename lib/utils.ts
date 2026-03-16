@@ -5,9 +5,10 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 export function formatCurrency(amount: number): string {
-  return `KES ${amount.toLocaleString()}`
+  // If amount is undefined, null, or not a number, default to 0
+  const safeAmount = amount ?? 0;
+  return `KES ${safeAmount.toLocaleString()}`;
 }
-
 export function getWhatsAppUrl(number: string, message: string): string {
   return `https://wa.me/${number}?text=${encodeURIComponent(message)}`
 }

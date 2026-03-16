@@ -126,6 +126,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createAdminSupabase } from "@/lib/supabase/server"
 import { initiateStkPush, normalisePhone } from "@/lib/mpesa"
+import { notifyOrderCreated } from "@/lib/notifications"
+import { Order } from "@/lib/types"
 
 export async function POST(req: NextRequest) {
   const supabase = createAdminSupabase()
@@ -140,37 +142,18 @@ export async function POST(req: NextRequest) {
       deliveryCity,
       notes,
       paymentMethod,
-      items, // CartItem[]
+      items,        // CartItem[]
+      subtotal,
+      deliveryFee,
+      total,
     } = body
 
-    // 1. Fetch current Store Settings for truth (Prices/Fees)
-    const { data: settings, error: settingsError } = await supabase
-      .from("store_settings")
-      .select("*")
-      .eq("id", 1)
-      .single()
-
-    if (settingsError) {
-      console.error("Settings fetch error:", settingsError)
-      // If DB settings fail, we use your established defaults
-    }
-
-    const dbFee = settings?.delivery_fee ?? 300
-    const dbThreshold = settings?.free_delivery_threshold ?? 5000
-
-    // 2. Validate basic fields
+    // Validate
     if (!customerName || !customerPhone || !deliveryAddress || !items?.length) {
       return NextResponse.json({ error: "Missing required order fields" }, { status: 400 })
     }
 
-    // 3. RECALCULATE Totals (Server-side validation)
-    // We map through items to calculate the subtotal. 
-    // Note: In a production-hardened app, you'd fetch item prices from the 'products' table here.
-    const calculatedSubtotal = items.reduce((acc: number, item: any) => acc + (item.price * item.qty), 0)
-    const calculatedFee = calculatedSubtotal >= dbThreshold ? 0 : dbFee
-    const finalTotal = calculatedSubtotal + calculatedFee
-
-    // 4. Insert order with server-calculated values
+    // 1. Insert order
     const { data: order, error: orderError } = await supabase
       .from("orders")
       .insert({
@@ -181,11 +164,11 @@ export async function POST(req: NextRequest) {
         delivery_city:    deliveryCity ?? null,
         notes:            notes ?? null,
         payment_method:   paymentMethod,
-        subtotal:         calculatedSubtotal,
-        delivery_fee:     calculatedFee,
-        total:            finalTotal,
+        subtotal,
+        delivery_fee:     deliveryFee,
+        total,
         status:           "pending",
-        payment_status:   "unpaid",
+        payment_status:   paymentMethod === "mpesa" ? "unpaid" : "unpaid",
       })
       .select()
       .single()
@@ -195,7 +178,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Failed to create order" }, { status: 500 })
     }
 
-    // 5. Insert order items
+    // 2. Insert order items
     const orderItems = items.map((item: any) => ({
       order_id:      order.id,
       product_id:    item.id ?? null,
@@ -210,40 +193,40 @@ export async function POST(req: NextRequest) {
 
     if (itemsError) {
       console.error("Order items insert error:", itemsError)
-      // We don't crash here because the order header already exists
+      // Order exists — don't fail the whole request
     }
 
-    // 6. Trigger M-Pesa STK push if payment method is mpesa
+    // 3. Fire new-order notification (non-blocking)
+    const fullOrder = { ...order, order_items: orderItems } as unknown as Order
+    notifyOrderCreated(fullOrder).catch((e) => console.error("[Notification] new order failed:", e))
+
+    // 4. Trigger M-Pesa STK push if payment method is mpesa
     let mpesaCheckoutRequestId: string | undefined
 
     if (paymentMethod === "mpesa") {
-      try {
-        const normalisedPhone = normalisePhone(customerPhone)
-        const mpesaResult = await initiateStkPush({
-          phoneNumber:  normalisedPhone,
-          amount:       finalTotal, // Using our calculated total
-          orderId:      order.id,
-          orderNumber:  order.order_number,
+      const normalisedPhone = normalisePhone(customerPhone)
+      const mpesaResult = await initiateStkPush({
+        phoneNumber:  normalisedPhone,
+        amount:       total,
+        orderId:      order.id,
+        orderNumber:  order.order_number,
+      })
+
+      if (mpesaResult.success && mpesaResult.checkoutRequestId) {
+        mpesaCheckoutRequestId = mpesaResult.checkoutRequestId
+
+        // Save transaction record
+        await supabase.from("mpesa_transactions").insert({
+          order_id:            order.id,
+          merchant_request_id: mpesaResult.merchantRequestId,
+          checkout_request_id: mpesaResult.checkoutRequestId,
+          phone_number:        normalisedPhone,
+          amount:              total,
+          status:              "pending",
         })
-
-        if (mpesaResult.success && mpesaResult.checkoutRequestId) {
-          mpesaCheckoutRequestId = mpesaResult.checkoutRequestId
-
-          // Save transaction record for polling/webhooks
-          await supabase.from("mpesa_transactions").insert({
-            order_id:            order.id,
-            merchant_request_id: mpesaResult.merchantRequestId,
-            checkout_request_id: mpesaResult.checkoutRequestId,
-            phone_number:        normalisedPhone,
-            amount:              finalTotal,
-            status:              "pending",
-          })
-        } else {
-          console.error("STK push failed:", mpesaResult.errorMessage)
-          // We return the order anyway so the user can see the "Retry" button on frontend
-        }
-      } catch (mpesaErr) {
-        console.error("M-Pesa integration error:", mpesaErr)
+      } else {
+        // STK failed — still return the order, frontend can retry
+        console.error("STK push failed:", mpesaResult.errorMessage)
       }
     }
 
@@ -253,7 +236,6 @@ export async function POST(req: NextRequest) {
       orderNumber:  order.order_number,
       mpesaCheckoutRequestId,
     })
-
   } catch (err: any) {
     console.error("orders POST error:", err)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

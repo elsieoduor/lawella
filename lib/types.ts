@@ -28,22 +28,22 @@ export interface Category {
 
 export interface Order {
   id: string
-  order_number?: string
+  order_number: string
   customer_name: string
   customer_email?: string | null
   customer_phone: string
   delivery_address: string
   delivery_city?: string | null
   notes?: string | null
-  subtotal?: number
-  delivery_fee?: number
+  subtotal: number
+  delivery_fee: number
   total: number
   status: "pending" | "processing" | "shipped" | "delivered" | "cancelled"
   payment_method: "mpesa" | "cash" | "bank"
-  payment_status?: "unpaid" | "paid" | "failed" | "refunded"
-  created_at?: string
-  updated_at?: string
-  order_date: string
+  payment_status: "unpaid" | "paid" | "failed" | "refunded" | "pending_verification"
+  bank_reference?: string | null
+  created_at: string
+  updated_at: string
   order_items?: OrderItem[]
 }
 
