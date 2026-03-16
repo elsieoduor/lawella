@@ -1,6 +1,8 @@
-// import { NextRequest, NextResponse } from "next/server"
-// import { createAdminSupabase } from "@/lib/supabase/server"
-// import { initiateStkPush, normalisePhone } from "@/lib/mpesa"
+import { NextRequest, NextResponse } from "next/server"
+import { createAdminSupabase } from "@/lib/supabase/server"
+import { initiateStkPush, normalisePhone } from "@/lib/mpesa"
+import { notifyOrderCreated } from "@/lib/notifications"
+import { Order } from "@/lib/types"
 
 // export async function POST(req: NextRequest) {
 //   const supabase = createAdminSupabase()
@@ -15,45 +17,33 @@
 //       deliveryCity,
 //       notes,
 //       paymentMethod,
-//       items,
+//       items,        // CartItem[]
+//       subtotal,
+//       deliveryFee,
+//       total,
 //     } = body
 
-//     // 1. Fetch current Store Settings for truth
-//     const { data: settings } = await supabase
-//       .from("store_settings")
-//       .select("*")
-//       .eq("id", 1)
-//       .single()
-
-//     const dbFee = settings?.delivery_fee ?? 300
-//     const dbThreshold = settings?.free_delivery_threshold ?? 5000
-
-//     // 2. Validate basic fields
+//     // Validate
 //     if (!customerName || !customerPhone || !deliveryAddress || !items?.length) {
-//       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+//       return NextResponse.json({ error: "Missing required order fields" }, { status: 400 })
 //     }
 
-//     // 3. RECALCULATE Totals (Don't trust the body.total from the frontend!)
-//     const calculatedSubtotal = items.reduce((acc: number, item: any) => acc + (item.price * item.qty), 0)
-//     const calculatedFee = calculatedSubtotal >= dbThreshold ? 0 : dbFee
-//     const finalTotal = calculatedSubtotal + calculatedFee
-
-//     // 4. Insert order with server-calculated values
+//     // 1. Insert order
 //     const { data: order, error: orderError } = await supabase
 //       .from("orders")
 //       .insert({
-//         customer_name: customerName,
-//         customer_email: customerEmail ?? null,
-//         customer_phone: customerPhone,
+//         customer_name:    customerName,
+//         customer_email:   customerEmail ?? null,
+//         customer_phone:   customerPhone,
 //         delivery_address: deliveryAddress,
-//         delivery_city: deliveryCity ?? null,
-//         notes: notes ?? null,
-//         payment_method: paymentMethod,
-//         subtotal: calculatedSubtotal, // Use server value
-//         delivery_fee: calculatedFee, // Use server value
-//         total: finalTotal,           // Use server value
-//         status: "pending",
-//         payment_status: "unpaid",
+//         delivery_city:    deliveryCity ?? null,
+//         notes:            notes ?? null,
+//         payment_method:   paymentMethod,
+//         subtotal,
+//         delivery_fee:     deliveryFee,
+//         total,
+//         status:           "pending",
+//         payment_status:   paymentMethod === "mpesa" ? "unpaid" : "unpaid",
 //       })
 //       .select()
 //       .single()
@@ -81,7 +71,11 @@
 //       // Order exists — don't fail the whole request
 //     }
 
-//     // 3. Trigger M-Pesa STK push if payment method is mpesa
+//     // 3. Fire new-order notification (non-blocking)
+//     const fullOrder = { ...order, order_items: orderItems } as unknown as Order
+//     notifyOrderCreated(fullOrder).catch((e) => console.error("[Notification] new order failed:", e))
+
+//     // 4. Trigger M-Pesa STK push if payment method is mpesa
 //     let mpesaCheckoutRequestId: string | undefined
 
 //     if (paymentMethod === "mpesa") {
@@ -123,12 +117,58 @@
 //   }
 // }
 
-import { NextRequest, NextResponse } from "next/server"
-import { createAdminSupabase } from "@/lib/supabase/server"
-import { initiateStkPush, normalisePhone } from "@/lib/mpesa"
-import { notifyOrderCreated } from "@/lib/notifications"
-import { Order } from "@/lib/types"
+// // GET /api/orders?orderNumber=LW-0001
+// export async function GET(req: NextRequest) {
+//   const supabase = createAdminSupabase()
+//   const orderNumber = req.nextUrl.searchParams.get("orderNumber")
 
+//   if (orderNumber) {
+//     const { data: order, error } = await supabase
+//       .from("orders")
+//       .select("*")
+//       .eq("order_number", orderNumber)
+//       .single()
+
+//     if (error || !order) return NextResponse.json({ error: "Order not found" }, { status: 404 })
+
+//     const { data: items } = await supabase
+//       .from("order_items")
+//       .select("*")
+//       .eq("order_id", order.id)
+//       .order("id", { ascending: true })
+
+//     return NextResponse.json({ ...order, order_items: items ?? [] })
+//   }
+
+//   // List all orders (admin) — fetch orders then count items per order separately
+//   const { data: orders, error } = await supabase
+//     .from("orders")
+//     .select("*")
+//     .order("created_at", { ascending: false })
+//     .limit(200)
+
+//   if (error) {
+//     console.error("[orders GET] list error:", JSON.stringify(error))
+//     return NextResponse.json({ error: error.message }, { status: 500 })
+//   }
+
+//   // Attach item counts without a join
+//   const { data: itemCounts } = await supabase
+//     .from("order_items")
+//     .select("order_id")
+
+//   const countMap: Record<string, number> = {}
+//   for (const row of (itemCounts ?? [])) {
+//     countMap[row.order_id] = (countMap[row.order_id] ?? 0) + 1
+//   }
+
+//   const result = (orders ?? []).map((o) => ({
+//     ...o,
+//     order_items: [{ count: countMap[o.id] ?? 0 }],
+//   }))
+
+//   return NextResponse.json(result)
+// }
 export async function POST(req: NextRequest) {
   const supabase = createAdminSupabase()
 
@@ -142,6 +182,8 @@ export async function POST(req: NextRequest) {
       deliveryCity,
       notes,
       paymentMethod,
+      deliveryZoneId,
+      deliveryZoneName,
       items,        // CartItem[]
       subtotal,
       deliveryFee,
@@ -164,6 +206,8 @@ export async function POST(req: NextRequest) {
         delivery_city:    deliveryCity ?? null,
         notes:            notes ?? null,
         payment_method:   paymentMethod,
+        delivery_zone_id:   deliveryZoneId ?? null,
+        delivery_zone_name: deliveryZoneName ?? null,
         subtotal,
         delivery_fee:     deliveryFee,
         total,
@@ -248,23 +292,49 @@ export async function GET(req: NextRequest) {
   const orderNumber = req.nextUrl.searchParams.get("orderNumber")
 
   if (orderNumber) {
-    const { data, error } = await supabase
+    const { data: order, error } = await supabase
       .from("orders")
-      .select("*, order_items(*)")
+      .select("*")
       .eq("order_number", orderNumber)
       .single()
 
-    if (error) return NextResponse.json({ error: "Order not found" }, { status: 404 })
-    return NextResponse.json(data)
+    if (error || !order) return NextResponse.json({ error: "Order not found" }, { status: 404 })
+
+    const { data: items } = await supabase
+      .from("order_items")
+      .select("*")
+      .eq("order_id", order.id)
+      .order("id", { ascending: true })
+
+    return NextResponse.json({ ...order, order_items: items ?? [] })
   }
 
-  // List all orders (admin)
-  const { data, error } = await supabase
+  // List all orders (admin) — fetch orders then count items per order separately
+  const { data: orders, error } = await supabase
     .from("orders")
-    .select("*, order_items(count)")
+    .select("*")
     .order("created_at", { ascending: false })
-    .limit(100)
+    .limit(200)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json(data)
+  if (error) {
+    console.error("[orders GET] list error:", JSON.stringify(error))
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  // Attach item counts without a join
+  const { data: itemCounts } = await supabase
+    .from("order_items")
+    .select("order_id")
+
+  const countMap: Record<string, number> = {}
+  for (const row of (itemCounts ?? [])) {
+    countMap[row.order_id] = (countMap[row.order_id] ?? 0) + 1
+  }
+
+  const result = (orders ?? []).map((o) => ({
+    ...o,
+    order_items: [{ count: countMap[o.id] ?? 0 }],
+  }))
+
+  return NextResponse.json(result)
 }
