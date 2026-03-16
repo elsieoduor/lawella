@@ -2,25 +2,26 @@ import { NextRequest, NextResponse } from "next/server"
 import { createAdminSupabase } from "@/lib/supabase/server"
 import { sendEmail, sendSMS } from "@/lib/notifications"
 
-interface Params { params: { id: string } }
+interface RouteContext { params: Promise<{ id: string }> }
 
-export async function POST(req: NextRequest, { params }: Params) {
+export async function POST(req: NextRequest, { params }: RouteContext) {
   const supabase = createAdminSupabase()
+  // Fix: Unwrapping the params promise
+  const { id: orderId } = await params
 
   try {
     const { bankReference } = await req.json()
-
     if (!bankReference?.trim()) {
       return NextResponse.json({ error: "Transaction reference is required" }, { status: 400 })
     }
 
     const ref = bankReference.trim().toUpperCase()
 
-    // 1. Fetch the order first to get customer info + check it's a bank order
+    // Use orderId (resolved) instead of params.id
     const { data: order, error: fetchError } = await supabase
       .from("orders")
       .select("*, order_items(*)")
-      .eq("id", params.id)
+      .eq("id", orderId)
       .single()
 
     if (fetchError || !order) {
@@ -39,21 +40,21 @@ export async function POST(req: NextRequest, { params }: Params) {
     const { data: updated, error: updateError } = await supabase
       .from("orders")
       .update({
-        bank_reference:  ref,
-        payment_status:  "pending_verification",
+        bank_reference: ref,
+        payment_status: "pending_verification",
       })
-      .eq("id", params.id)
+      .eq("id", orderId)
       .select()
       .single()
 
-    if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 500 })
-    }
+    if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 })
+
+    // Safety Fix: Add a fallback for the fmt function to prevent toLocaleString crash
+    const fmt = (n: number) => `KES ${(n ?? 0).toLocaleString()}`
 
     // 3. Fire admin alert — non-blocking
     const adminEmail   = process.env.NOTIFICATION_EMAIL
     const siteUrl      = process.env.NEXT_PUBLIC_SITE_URL ?? ""
-    const fmt          = (n: number) => `KES ${n.toLocaleString()}`
     const firstName    = order.customer_name.split(" ")[0]
 
     if (adminEmail) {
