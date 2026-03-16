@@ -69,14 +69,14 @@ export function Footer() {
             </div>
             <div className="text-white/55 text-sm space-y-2">
               <div>📍 Nairobi, Kenya</div>
-              <div>📱 +254 700 000 000</div>
+              <div>📱 +254 710 776 500</div>
               <div>📧 hello@lawella.co.ke</div>
             </div>
           </div>
         </div>
 
         <div className="border-t border-white/10 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-white/35 text-xs">
-          <span>© 2025 Lawella. All rights reserved.</span>
+          <span>© {new Date().getFullYear()} Lawella. All rights reserved.</span>
           <span>Made with 🧶 & ❤️ in Nairobi</span>
         </div>
       </div>
