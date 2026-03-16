@@ -69,6 +69,22 @@ export interface Customer {
   first_order_at: string
 }
 
+// export interface StoreSettings {
+//   store_name: string
+//   store_email: string
+//   whatsapp_number: string
+//   bank_name: string
+//   bank_account_name: string
+//   bank_account_number: string
+//   bank_branch: string
+//   bank_swift: string
+//   delivery_fee: number
+//   free_delivery_threshold: number
+//   delivery_note: string
+//   instagram_url: string
+//   facebook_url: string
+// }
+
 export interface StoreSettings {
   store_name: string
   store_email: string
@@ -80,7 +96,31 @@ export interface StoreSettings {
   bank_swift: string
   delivery_fee: number
   free_delivery_threshold: number
+  delivery_mode: "flat" | "zones" | "free"
   delivery_note: string
   instagram_url: string
   facebook_url: string
+}
+
+export interface DeliveryZone {
+  id: number
+  name: string
+  price: number
+  zone_type: "zone" | "pickup" | "rider"
+  description?: string | null
+  is_active: boolean
+  sort_order: number
+}
+
+export type DeliveryMethod = "flat_rate" | "pickup_mtaani" | "personal_rider" | "free_pickup"
+
+export interface DeliveryZone {
+  id: number
+  name: string
+  method: DeliveryMethod
+  price: number
+  description?: string | null
+  sort_order: number
+  is_active: boolean
+  created_at: string
 }
